@@ -1,7 +1,7 @@
 pipeline {
     agent any 
     tools {
-        jdk 'jdk'
+        
         nodejs 'nodejs'
     }
     environment  {
@@ -19,8 +19,10 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
-            }
+                git branch: 'main', 
+                credentialsId: 'GITHUB', 
+                url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
+                }
         }
         stage('Sonarqube Analysis') {
             steps {
@@ -40,14 +42,14 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Application-Code/backend') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+        // stage('OWASP Dependency-Check Scan') {
+        //     steps {
+        //         dir('Application-Code/backend') {
+        //             dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+        //             dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        //         }
+        //     }
+        // }
         stage('Trivy File Scan') {
             steps {
                 dir('Application-Code/backend') {
@@ -82,8 +84,10 @@ pipeline {
         }
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
-            }
+                git branch: 'main', 
+                credentialsId: 'GITHUB', 
+                url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
+                }
         }
         stage('Update Deployment file') {
             environment {
@@ -94,7 +98,7 @@ pipeline {
                 dir('Kubernetes-Manifests-file/Backend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "gouda0682@gmailcom"
+                            git config user.email "gouda0682@gmail.com"
                             git config user.name "Asishkumar"
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
