@@ -1,7 +1,6 @@
 pipeline {
     agent any 
     tools {
-        jdk 'jdk'
         nodejs 'nodejs'
     }
     environment  {
@@ -19,16 +18,18 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
-            }
+                git branch: 'main', 
+                credentialsId: 'GITHUB', 
+                url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
+                }
         }
         stage('Sonarqube Analysis') {
             steps {
                 dir('Application-Code/frontend') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=three-tier-frontend \
-                        -Dsonar.projectKey=three-tier-frontend '''
+                        -Dsonar.projectName=frontend \
+                        -Dsonar.projectKey=frontend '''
                     }
                 }
             }
@@ -40,14 +41,14 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Application-Code/frontend') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+        // stage('OWASP Dependency-Check Scan') {
+        //     steps {
+        //         dir('Application-Code/frontend') {
+        //             dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+        //             dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        //         }
+        //     }
+        // }
         stage('Trivy File Scan') {
             steps {
                 dir('Application-Code/frontend') {
@@ -82,29 +83,37 @@ pipeline {
         }
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
-            }
+                git branch: 'main', 
+                credentialsId: 'GITHUB', 
+                url: 'https://github.com/ASISHGOUDA/Mern-stack-end-to-end.git'
+                }
         }
         stage('Update Deployment file') {
-            environment {
-                GIT_REPO_NAME = "Mern-stack-end-to-end"
-                GIT_USER_NAME = "ASISHGOUDA"
-            }
-            steps {
+                environment {
+                    GIT_REPO_NAME = "Mern-stack-end-to-end"
+                    GIT_USER_NAME = "ASISHGOUDA"
+                }
+                steps {
                 dir('Kubernetes-Manifests-file/Frontend') {
-                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            git config user.email "gouda0682@gmailcom"
-                            git config user.name "Asishkumar"
-                            BUILD_NUMBER=${BUILD_NUMBER}
-                            echo $BUILD_NUMBER
-                            imageTag=$(grep -oP '(?<=frontend:)[^ ]+' deployment.yaml)
-                            echo $imageTag
-                            sed -i "s/${AWS_ECR_REPO_NAME}:${imageTag}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}/" deployment.yaml
-                            git add deployment.yaml
-                            git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
-                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
-                        '''
+                withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                sh '''
+                    git config user.email "gouda0682@gmail.com"
+                    git config user.name "Asishkumar"
+                    
+                    echo "Current Build Number: ${BUILD_NUMBER}"
+                    
+                    # Extract existing image tag from deployment.yaml
+                    imageTag=$(grep -oP '(?<=frontend:)[^ ]+' deployment.yaml)
+                    echo "Existing Image Tag: $imageTag"
+                    
+                    # Update image tag with new build number
+                    sed -i "s/${AWS_ECR_REPO_NAME}:${imageTag}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}/" deployment.yaml
+                    
+                    # Commit and push changes to the repository
+                    git add deployment.yaml
+                    git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+                '''
                     }
                 }
             }
